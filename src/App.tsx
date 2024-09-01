@@ -17,29 +17,34 @@ export function App() {
   const [isLoading, setIsLoading] = useState(false);
 
   const transactions = useMemo(
-    () => paginatedTransactions?.data ?? transactionsByEmployee ?? null,
+    () =>
+      paginatedTransactions?.data
+        ? [...(transactionsByEmployee ?? []), ...paginatedTransactions.data]
+        : transactionsByEmployee ?? [],
     [paginatedTransactions, transactionsByEmployee]
   );
 
   const loadAllTransactions = useCallback(async () => {
     setIsLoading(true);
-    transactionsByEmployeeUtils.invalidateData(); // Invalidate employee-specific transactions
-    await employeeUtils.fetchAll(); // Fetch all employees
-    await paginatedTransactionsUtils.fetchAll(); // Fetch all paginated transactions
+    transactionsByEmployeeUtils.invalidateData();
+
+    await employeeUtils.fetchAll();
+    await paginatedTransactionsUtils.fetchAll();
+
     setIsLoading(false);
   }, [employeeUtils, paginatedTransactionsUtils, transactionsByEmployeeUtils]);
 
   const loadTransactionsByEmployee = useCallback(
     async (employeeId: string) => {
-      paginatedTransactionsUtils.invalidateData(); // Invalidate paginated transactions when fetching by employee
-      await transactionsByEmployeeUtils.fetchById(employeeId); // Fetch transactions for the selected employee
+      paginatedTransactionsUtils.invalidateData();
+      await transactionsByEmployeeUtils.fetchById(employeeId);
     },
     [paginatedTransactionsUtils, transactionsByEmployeeUtils]
   );
 
   useEffect(() => {
     if (employees === null && !employeeUtils.loading) {
-      loadAllTransactions(); // Initial load when employees data is null
+      loadAllTransactions();
     }
   }, [employeeUtils.loading, employees, loadAllTransactions]);
 
@@ -51,7 +56,7 @@ export function App() {
         <hr className="RampBreak--l" />
 
         <InputSelect<Employee>
-          isLoading={isLoading}
+          isLoading={employeeUtils.loading} // Only use employee loading state
           defaultValue={EMPTY_EMPLOYEE}
           items={employees === null ? [] : [EMPTY_EMPLOYEE, ...employees]}
           label="Filter by employee"
@@ -80,7 +85,7 @@ export function App() {
         <div className="RampGrid">
           <Transactions transactions={transactions} />
 
-          {transactions !== null && (
+          {transactions !== null && paginatedTransactions && (
             <button
               className="RampButton"
               disabled={paginatedTransactionsUtils.loading}
